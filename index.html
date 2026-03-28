@@ -7,25 +7,25 @@
     <script src="https://cdn.jsdelivr.net/npm/fraction.js@4.2.0/dist/fraction.min.js"></script>
     <style>
         body { font-family: 'Courier New', Courier, monospace; display: flex; flex-direction: column; align-items: center; padding: 20px; background: #f4f4f9; }
-        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 95vw; overflow-x: auto; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 98vw; overflow-x: auto; }
         h1 { font-size: 1.2rem; margin-bottom: 20px; color: #333; }
         .hidden { display: none; }
-        .grid-container { display: grid; gap: 8px; align-items: center; margin: 20px 0; justify-items: center; }
-        input { font-family: 'Courier New', Courier, monospace; padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 75px; text-align: center; }
-        button { font-family: 'Courier New', Courier, monospace; padding: 8px 16px; cursor: pointer; background: #333; color: white; border: none; border-radius: 4px; margin: 5px; }
+        .grid-container { display: grid; gap: 10px; align-items: center; margin: 20px 0; justify-items: center; }
+        input { font-family: 'Courier New', Courier, monospace; padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 80px; text-align: center; }
+        button { font-family: 'Courier New', Courier, monospace; padding: 10px 20px; cursor: pointer; background: #333; color: white; border: none; border-radius: 4px; margin: 5px; }
         button:hover { background: #555; }
-        .result-box { background: #eee; border: 1px solid #bbb; min-height: 20px; padding: 6px; border-radius: 4px; font-weight: bold; text-align: center; width: 75px; box-sizing: border-box; }
-        select { font-family: 'Courier New', Courier, monospace; padding: 6px; }
-        .label-cell { font-weight: bold; font-size: 0.9rem; }
+        .result-box { background: #eee; border: 1px solid #bbb; min-height: 24px; padding: 8px; border-radius: 4px; font-weight: bold; text-align: center; width: 80px; box-sizing: border-box; font-size: 0.9rem; }
+        select { font-family: 'Courier New', Courier, monospace; padding: 8px; border-radius: 4px; cursor: pointer; }
+        .label-cell { font-weight: bold; font-size: 0.8rem; color: #666; }
     </style>
 </head>
 <body>
 
-<h1>SimplexOP by &lt;sergiopericolo&gt;</h1>
+<h1>SimplexOP by &lt;sergiopericolo&gt;&lt; nummber 1 in the world!</h1>
 
 <div class="card">
     <div id="setup-page">
-        <p>Elementi per riga (max 10): <input type="number" id="num_elements" value="4" min="1" max="10"></p>
+        <p>Elementi riga (max 10): <input type="number" id="num_elements" value="4" min="1" max="10"></p>
         <label><input type="checkbox" id="use_fractions"> Usa frazioni</label>
         <br><br>
         <button onclick="buildAddPage()">Avanti</button>
@@ -47,38 +47,39 @@
     }
 
     function buildAddPage() {
-        let val = parseInt(document.getElementById('num_elements').value);
+        let inputEl = document.getElementById('num_elements');
+        let val = parseInt(inputEl.value);
+        if (isNaN(val) || val < 1) val = 1;
         if (val > 10) val = 10;
-        if (val < 1) val = 1;
         n = val;
 
         const grid = document.getElementById('matrix-grid');
         grid.style.gridTemplateColumns = `auto auto repeat(${n}, auto) auto`;
         
-        let html = '';
+        let content = '';
 
-        html += `<div class="label-cell">R1</div><div></div>`;
-        for (let i = 0; i < n; i++) html += `<input id="a_${i}" placeholder="a${i+1}">`;
-        html += `<div></div>`;
+        content += `<div class="label-cell">R1</div><div></div>`;
+        for (let i = 0; i < n; i++) content += `<input id="a_${i}" placeholder="0">`;
+        content += `<div></div>`;
 
-        html += `
-            <select id="operation"><option value="-">-</option><option value="+">+</option></select>
-            <div style="display:flex; align-items:center;"><input id="m_value" value="1" style="width:50px"><span>×</span></div>
+        content += `
+            <div><select id="operation"><option value="-">-</option><option value="+">+</option></select></div>
+            <div style="display:flex; align-items:center;"><input id="m_value" value="1" style="width:50px"><span style="margin-left:4px">×</span></div>
         `;
-        for (let i = 0; i < n; i++) html += `<input id="b_${i}" placeholder="b${i+1}">`;
-        html += `<div class="label-cell">=</div>`;
+        for (let i = 0; i < n; i++) content += `<input id="b_${i}" placeholder="0">`;
+        content += `<div class="label-cell">=</div>`;
 
-        html += `<div class="label-cell">RES</div><div></div>`;
-        for (let i = 0; i < n; i++) html += `<div id="res_${i}" class="result-box">...</div>`;
-        html += `<div></div>`;
+        content += `<div class="label-cell">RES</div><div></div>`;
+        for (let i = 0; i < n; i++) content += `<div id="res_${i}" class="result-box">...</div>`;
+        content += `<div></div>`;
 
-        grid.innerHTML = html;
+        grid.innerHTML = content;
         document.getElementById('setup-page').classList.add('hidden');
         document.getElementById('calc-page').classList.remove('hidden');
     }
 
     function parseNum(val) {
-        let s = val.trim();
+        let s = val.trim().replace(',', '.');
         if (!s) return new Fraction(0);
         try { return new Fraction(s); } catch (e) { return null; }
     }
@@ -86,13 +87,16 @@
     function compute() {
         const useFrac = document.getElementById('use_fractions').checked;
         const op = document.getElementById('operation').value;
-        const m = parseNum(document.getElementById('m_value').value);
+        const mEl = document.getElementById('m_value');
+        const m = parseNum(mEl.value);
 
-        if (m === null) { alert("M non valido"); return; }
+        if (m === null) { alert("Moltiplicatore M non valido"); return; }
 
         for (let i = 0; i < n; i++) {
-            const a = parseNum(document.getElementById(`a_${i}`).value);
-            const b = parseNum(document.getElementById(`b_${i}`).value);
+            const valA = document.getElementById(`a_${i}`).value;
+            const valB = document.getElementById(`b_${i}`).value;
+            const a = parseNum(valA);
+            const b = parseNum(valB);
             const resBox = document.getElementById(`res_${i}`);
 
             if (a === null || b === null) {
