@@ -9,15 +9,14 @@
         body { font-family: 'Courier New', Courier, monospace; display: flex; flex-direction: column; align-items: center; padding: 20px; background: #f4f4f9; }
         .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 95vw; overflow-x: auto; }
         h1 { font-size: 1.2rem; margin-bottom: 20px; color: #333; }
-        h2 { font-size: 1rem; margin-top: 0; }
         .hidden { display: none; }
-        .grid-container { display: grid; gap: 8px; align-items: center; margin: 20px 0; }
-        input { font-family: 'Courier New', Courier, monospace; padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 70px; text-align: center; }
+        .grid-container { display: grid; gap: 8px; align-items: center; margin: 20px 0; justify-items: center; }
+        input { font-family: 'Courier New', Courier, monospace; padding: 6px; border: 1px solid #ccc; border-radius: 4px; width: 75px; text-align: center; }
         button { font-family: 'Courier New', Courier, monospace; padding: 8px 16px; cursor: pointer; background: #333; color: white; border: none; border-radius: 4px; margin: 5px; }
         button:hover { background: #555; }
-        .secondary { background: #888; }
-        .result-box { background: #eee; border: 1px solid #bbb; min-height: 20px; padding: 6px; border-radius: 4px; font-weight: bold; text-align: center; min-width: 70px; }
+        .result-box { background: #eee; border: 1px solid #bbb; min-height: 20px; padding: 6px; border-radius: 4px; font-weight: bold; text-align: center; width: 75px; box-sizing: border-box; }
         select { font-family: 'Courier New', Courier, monospace; padding: 6px; }
+        .label-cell { font-weight: bold; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -26,20 +25,16 @@
 
 <div class="card">
     <div id="setup-page">
-        <h2>Configurazione</h2>
-        <p>Elementi per riga: <input type="number" id="num_elements" value="4" min="1"></p>
-        <label>
-            <input type="checkbox" id="use_fractions"> Usa frazioni
-        </label>
+        <p>Elementi per riga (max 10): <input type="number" id="num_elements" value="4" min="1" max="10"></p>
+        <label><input type="checkbox" id="use_fractions"> Usa frazioni</label>
         <br><br>
         <button onclick="buildAddPage()">Avanti</button>
     </div>
 
     <div id="calc-page" class="hidden">
-        <h2>Operazione di riga</h2>
         <div id="matrix-grid" class="grid-container"></div>
         <button onclick="compute()">Calcola</button>
-        <button class="secondary" onclick="showHome()">Indietro</button>
+        <button onclick="showHome()" style="background:#888">Indietro</button>
     </div>
 </div>
 
@@ -52,62 +47,40 @@
     }
 
     function buildAddPage() {
-        n = parseInt(document.getElementById('num_elements').value);
+        let val = parseInt(document.getElementById('num_elements').value);
+        if (val > 10) val = 10;
+        if (val < 1) val = 1;
+        n = val;
+
         const grid = document.getElementById('matrix-grid');
-        grid.innerHTML = '';
-        grid.style.gridTemplateColumns = `repeat(${n + 2}, auto)`;
-
-        grid.appendChild(document.createElement('div')); 
-        grid.appendChild(document.createElement('div')); 
-        for (let i = 0; i < n; i++) {
-            let input = document.createElement('input');
-            input.id = `a_${i}`;
-            input.placeholder = `R1[${i}]`;
-            grid.appendChild(input);
-        }
+        grid.style.gridTemplateColumns = `auto auto repeat(${n}, auto) auto`;
         
-        let opSelect = document.createElement('select');
-        opSelect.id = "operation";
-        opSelect.innerHTML = '<option value="-">-</option><option value="+">+</option>';
-        grid.appendChild(opSelect);
+        let html = '';
 
-        let mInput = document.createElement('input');
-        mInput.id = "m_value";
-        mInput.value = "1";
-        grid.appendChild(mInput);
+        html += `<div class="label-cell">R1</div><div></div>`;
+        for (let i = 0; i < n; i++) html += `<input id="a_${i}" placeholder="a${i+1}">`;
+        html += `<div></div>`;
 
-        let timesSign = document.createElement('div');
-        timesSign.innerText = "×";
-        grid.appendChild(timesSign);
+        html += `
+            <select id="operation"><option value="-">-</option><option value="+">+</option></select>
+            <div style="display:flex; align-items:center;"><input id="m_value" value="1" style="width:50px"><span>×</span></div>
+        `;
+        for (let i = 0; i < n; i++) html += `<input id="b_${i}" placeholder="b${i+1}">`;
+        html += `<div class="label-cell">=</div>`;
 
-        for (let i = 0; i < n; i++) {
-            let input = document.createElement('input');
-            input.id = `b_${i}`;
-            input.placeholder = `R2[${i}]`;
-            grid.appendChild(input);
-        }
+        html += `<div class="label-cell">RES</div><div></div>`;
+        for (let i = 0; i < n; i++) html += `<div id="res_${i}" class="result-box">...</div>`;
+        html += `<div></div>`;
 
-        let equalSign = document.createElement('div');
-        equalSign.innerText = "=";
-        grid.appendChild(equalSign);
-
-        grid.appendChild(document.createElement('div')); 
-        grid.appendChild(document.createElement('div')); 
-        for (let i = 0; i < n; i++) {
-            let res = document.createElement('div');
-            res.id = `res_${i}`;
-            res.className = "result-box";
-            res.innerText = "...";
-            grid.appendChild(res);
-        }
-
+        grid.innerHTML = html;
         document.getElementById('setup-page').classList.add('hidden');
         document.getElementById('calc-page').classList.remove('hidden');
     }
 
     function parseNum(val) {
-        if (!val.trim()) return new Fraction(0);
-        try { return new Fraction(val); } catch (e) { return null; }
+        let s = val.trim();
+        if (!s) return new Fraction(0);
+        try { return new Fraction(s); } catch (e) { return null; }
     }
 
     function compute() {
@@ -120,15 +93,21 @@
         for (let i = 0; i < n; i++) {
             const a = parseNum(document.getElementById(`a_${i}`).value);
             const b = parseNum(document.getElementById(`b_${i}`).value);
-            const resLabel = document.getElementById(`res_${i}`);
+            const resBox = document.getElementById(`res_${i}`);
 
             if (a === null || b === null) {
-                resLabel.innerText = "Err";
+                resBox.innerText = "Err";
                 continue;
             }
 
-            let result = (op === "+") ? a.add(m.mul(b)) : a.sub(m.mul(b));
-            resLabel.innerText = useFrac ? result.toFraction(true) : Math.round(result.valueOf() * 10000) / 10000;
+            let res = (op === "+") ? a.add(m.mul(b)) : a.sub(m.mul(b));
+            
+            if (useFrac) {
+                resBox.innerText = res.toFraction(true);
+            } else {
+                let num = res.valueOf();
+                resBox.innerText = Number.isInteger(num) ? num : Math.round(num * 10000) / 10000;
+            }
         }
     }
 </script>
