@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pivot Row Operation - Web</title>
+    <script src="https://cdn.jsdelivr.net/npm/fraction.js@4.2.0/dist/fraction.min.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; padding: 20px; background: #f4f4f9; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 90vw; overflow-x: auto; }
+        h2 { color: #333; margin-top: 0; }
+        .hidden { display: none; }
+        .grid-container { display: grid; gap: 10px; align-items: center; margin: 20px 0; }
+        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 60px; text-align: center; }
+        button { padding: 10px 20px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .secondary { background: #6c757d; }
+        .result-box { background: #e9ecef; border: 1px inset #ccc; min-height: 20px; padding: 8px; border-radius: 4px; font-weight: bold; text-align: center; }
+        .op-select { font-size: 1.2rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="setup-page">
+        <h2>Pivot Row Operation</h2>
+        <p>Numero di elementi per riga:</p>
+        <input type="number" id="num_elements" value="4" min="1" style="width: 100px;">
+        <br><br>
+        <label>
+            <input type="checkbox" id="use_fractions"> Usa frazioni (es: 1/2)
+        </label>
+        <br><br>
+        <button onclick="buildAddPage()">Avanti</button>
+    </div>
+
+    <div id="calc-page" class="hidden">
+        <h2>Inserisci i valori</h2>
+        <div id="matrix-grid" class="grid-container">
+            </div>
+        <button onclick="compute()">Calcola</button>
+        <button class="secondary" onclick="showHome()">Indietro</button>
+    </div>
+</div>
+
+<script>
+    let n = 4;
+
+    function showHome() {
+        document.getElementById('setup-page').classList.remove('hidden');
+        document.getElementById('calc-page').classList.add('hidden');
+    }
+
+    function buildAddPage() {
+        n = parseInt(document.getElementById('num_elements').value);
+        const grid = document.getElementById('matrix-grid');
+        grid.innerHTML = ''; // Pulisce la griglia
+
+        // Imposta le colonne della griglia (M + Segno + N elementi + Operatore/Uguale)
+        grid.style.gridTemplateColumns = `repeat(${n + 2}, auto)`;
+
+        // RIGA 1: Valori 'a'
+        grid.appendChild(document.createElement('div')); // Spazio vuoto sopra M
+        grid.appendChild(document.createElement('div')); // Spazio vuoto sopra X
+        for (let i = 0; i < n; i++) {
+            let input = document.createElement('input');
+            input.id = `a_${i}`;
+            input.placeholder = `a${i+1}`;
+            grid.appendChild(input);
+        }
+        
+        // Selettore Operazione (+ o -)
+        let opSelect = document.createElement('select');
+        opSelect.id = "operation";
+        opSelect.className = "op-select";
+        opSelect.innerHTML = '<option value="-">-</option><option value="+">+</option>';
+        grid.appendChild(opSelect);
+
+        // RIGA 2: Moltiplicatore M e Valori 'b'
+        let mInput = document.createElement('input');
+        mInput.id = "m_value";
+        mInput.value = "1";
+        grid.appendChild(mInput);
+
+        let timesSign = document.createElement('div');
+        timesSign.innerText = "×";
+        grid.appendChild(timesSign);
+
+        for (let i = 0; i < n; i++) {
+            let input = document.createElement('input');
+            input.id = `b_${i}`;
+            input.placeholder = `b${i+1}`;
+            grid.appendChild(input);
+        }
+
+        let equalSign = document.createElement('div');
+        equalSign.innerText = "=";
+        grid.appendChild(equalSign);
+
+        // RIGA 3: Risultati
+        grid.appendChild(document.createElement('div')); // Empty
+        grid.appendChild(document.createElement('div')); // Empty
+        for (let i = 0; i < n; i++) {
+            let res = document.createElement('div');
+            res.id = `res_${i}`;
+            res.className = "result-box";
+            res.innerText = "...";
+            grid.appendChild(res);
+        }
+
+        document.getElementById('setup-page').classList.add('hidden');
+        document.getElementById('calc-page').classList.remove('hidden');
+    }
+
+    function parseNum(val) {
+        if (!val.trim()) return new Fraction(0);
+        try {
+            // Gestisce sia "0.5" che "1/2"
+            return new Fraction(val);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function compute() {
+        const useFrac = document.getElementById('use_fractions').checked;
+        const op = document.getElementById('operation').value;
+        const mStr = document.getElementById('m_value').value;
+        const m = parseNum(mStr);
+
+        if (m === null) { alert("Valore M non valido"); return; }
+
+        for (let i = 0; i < n; i++) {
+            const a = parseNum(document.getElementById(`a_${i}`).value);
+            const b = parseNum(document.getElementById(`b_${i}`).value);
+            const resLabel = document.getElementById(`res_${i}`);
+
+            if (a === null || b === null) {
+                resLabel.innerText = "Err";
+                continue;
+            }
+
+            // Calcolo: res = a +/- (m * b)
+            let result;
+            if (op === "+") {
+                result = a.add(m.mul(b));
+            } else {
+                result = a.sub(m.mul(b));
+            }
+
+            // Output
+            if (useFrac) {
+                resLabel.innerText = result.toFraction(true); // Formato frazione
+            } else {
+                resLabel.innerText = Math.round(result.valueOf() * 10000) / 10000; // Arrotondato a 4 decimali
+            }
+        }
+    }
+</script>
+
+</body>
+</html>
