@@ -15,13 +15,13 @@
         button { font-family: 'Courier New', Courier, monospace; padding: 10px 20px; cursor: pointer; background: #333; color: white; border: none; border-radius: 4px; margin: 5px; }
         button:hover { background: #555; }
         .result-box { background: #eee; border: 1px solid #bbb; min-height: 24px; padding: 8px; border-radius: 4px; font-weight: bold; text-align: center; width: 80px; box-sizing: border-box; font-size: 0.9rem; }
-        select { font-family: 'Courier New', Courier, monospace; padding: 8px; border-radius: 4px; cursor: pointer; }
+        select { font-family: 'Courier New', Courier, monospace; padding: 8px; border-radius: 4px; }
         .label-cell { font-weight: bold; font-size: 0.8rem; color: #666; }
     </style>
 </head>
 <body>
 
-<h1>SimplexOP by &lt;sergiopericolo&gt; number ! in the world!</h1>
+<h1>SimplexOP by &lt;sergiopericolo&gt; number 1 in the world!</h1>
 
 <div class="card">
     <div id="setup-page">
@@ -47,56 +47,58 @@
     }
 
     function buildAddPage() {
-        let inputEl = document.getElementById('num_elements');
-        let val = parseInt(inputEl.value);
-        if (isNaN(val) || val < 1) val = 1;
-        if (val > 10) val = 10;
-        n = val;
-
+        const el = document.getElementById('num_elements');
+        n = Math.min(Math.max(parseInt(el.value) || 1, 1), 10);
         const grid = document.getElementById('matrix-grid');
         grid.style.gridTemplateColumns = `auto auto repeat(${n}, auto) auto`;
         
-        let content = '';
+        let h = '<div class="label-cell">R1</div><div></div>';
+        for (let i = 0; i < n; i++) h += `<input id="a_${i}" value="0">`;
+        h += '<div></div>';
 
-        content += `<div class="label-cell">R1</div><div></div>`;
-        for (let i = 0; i < n; i++) content += `<input id="a_${i}" placeholder="0">`;
-        content += `<div></div>`;
+        h += '<div><select id="operation"><option value="-">-</option><option value="+">+</option></select></div>';
+        h += `<div style="display:flex; align-items:center;"><input id="m_value" value="1" style="width:55px"><span style="margin-left:4px">×</span></div>`;
+        for (let i = 0; i < n; i++) h += `<input id="b_${i}" value="0">`;
+        h += '<div class="label-cell">=</div>';
 
-        content += `
-            <div><select id="operation"><option value="-">-</option><option value="+">+</option></select></div>
-            <div style="display:flex; align-items:center;"><input id="m_value" value="1" style="width:50px"><span style="margin-left:4px">×</span></div>
-        `;
-        for (let i = 0; i < n; i++) content += `<input id="b_${i}" placeholder="0">`;
-        content += `<div class="label-cell">=</div>`;
+        h += '<div class="label-cell">RES</div><div></div>';
+        for (let i = 0; i < n; i++) h += `<div id="res_${i}" class="result-box">0</div>`;
+        h += '<div></div>';
 
-        content += `<div class="label-cell">RES</div><div></div>`;
-        for (let i = 0; i < n; i++) content += `<div id="res_${i}" class="result-box">...</div>`;
-        content += `<div></div>`;
-
-        grid.innerHTML = content;
+        grid.innerHTML = h;
         document.getElementById('setup-page').classList.add('hidden');
         document.getElementById('calc-page').classList.remove('hidden');
     }
 
     function parseNum(val) {
-        let s = val.trim().replace(',', '.');
-        if (!s) return new Fraction(0);
-        try { return new Fraction(s); } catch (e) { return null; }
+        if (typeof Fraction === 'undefined') return null;
+        let s = val.toString().trim().replace(',', '.');
+        if (s === "") s = "0";
+        try {
+            return new Fraction(s);
+        } catch (e) {
+            return null;
+        }
     }
 
     function compute() {
+        if (typeof Fraction === 'undefined') {
+            alert("Errore: Libreria matematica non caricata. Verifica la connessione internet.");
+            return;
+        }
+
         const useFrac = document.getElementById('use_fractions').checked;
         const op = document.getElementById('operation').value;
-        const mEl = document.getElementById('m_value');
-        const m = parseNum(mEl.value);
-
+        const mInput = document.getElementById('m_value');
+        
+        if (!mInput) { alert("Errore: Campo moltiplicatore non trovato."); return; }
+        
+        const m = parseNum(mInput.value);
         if (m === null) { alert("Moltiplicatore M non valido"); return; }
 
         for (let i = 0; i < n; i++) {
-            const valA = document.getElementById(`a_${i}`).value;
-            const valB = document.getElementById(`b_${i}`).value;
-            const a = parseNum(valA);
-            const b = parseNum(valB);
+            const a = parseNum(document.getElementById(`a_${i}`).value);
+            const b = parseNum(document.getElementById(`b_${i}`).value);
             const resBox = document.getElementById(`res_${i}`);
 
             if (a === null || b === null) {
